@@ -15,29 +15,41 @@ services:
       - '5432'
     volumes: 
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app
 
-  api:
+  app:
     build:
       context: ./
       dockerfile: dockerfile
     
     command: bash -c "rm -f tmp/pids/server.pid && rails db:create db:migrate db:seed && bundle exec rails server -p 3000 -b '0.0.0.0'" 
-      
     depends_on:
       - db
-      
     ports:
       - '3000:3000'
-    # environment:
-    #   DB_HOST: db
-    #   DB_PORT: 5432
-    #   DB_USER: postgres
-    #   DB_PASSWORD: postgres
-    #   DB_NAME: postgres
     links:
       - db
     volumes:
       - '.:/app'
-    
+    networks:
+      - app
+
+  nginx:
+    build:
+      context: docker/web/
+      dockerfile: dockerfile
+    restart: always
+    ports:
+      - 80:80
+    depends_on:
+      - app
+    networks:
+      - app
+
 volumes:
   postgres_data:
+
+networks:
+  app:
+    driver: bridge
